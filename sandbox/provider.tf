@@ -16,7 +16,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "intree-sandbox-tfstate"
+    bucket         = "backend-sandbox-tfstate"
     key            = "talos/environments/sandbox/eu-west-1/terraform.tfstate"
     region         = "eu-west-1"
     dynamodb_table = "terraform-state-lock-dynamo"
