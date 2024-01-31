@@ -1,0 +1,85 @@
+variable "cluster_name" {
+  description = "Name of cluster"
+  type        = string
+  default     = "talos-sandbox"
+}
+
+
+
+variable "ccm" {
+  description = "Whether to deploy aws cloud controller manager"
+  type        = bool
+  default     = false
+}
+
+variable "kubernetes_version" {
+  description = "Kubernetes version to use for the cluster, if not set the k8s version shipped with the talos sdk version will be used"
+  type        = string
+  default     = null
+}
+
+variable "control_plane" {
+  description = "Info for control plane that will be created"
+  type = object({
+    instance_type      = optional(string, "t3.medium")
+    ami_id             = optional(string, null)
+    num_instances      = optional(number, 1)
+    config_patch_files = optional(list(string), [])
+    tags               = optional(map(string), {})
+  })
+
+  validation {
+    condition     = var.control_plane.ami_id != null ? (length(var.control_plane.ami_id) > 4 && substr(var.control_plane.ami_id, 0, 4) == "ami-") : true
+    error_message = "The ami_id value must be a valid AMI id, starting with \"ami-\"."
+  }
+
+  default = {}
+}
+
+variable "worker_groups" {
+  description = "List of node worker node groups to create"
+  type = object({
+    name               = string
+    instance_type      = optional(string, "t3.medium")
+    ami_id             = optional(string, "null")
+    num_instances      = optional(number, 3)
+    config_patch_files = optional(list(string), [])
+    tags               = optional(map(string), {})
+  })
+
+  # validation {
+  #   condition = (
+  #     alltrue([
+  #       var.worker_groups.ami_id != null ? (length(var.worker_groups.ami_id) > 4 && substr(var.worker_groups.ami_id, 0, 4) == "ami-") : true
+  #     ])
+  #   )
+  #   error_message = "The ami_id value must be a valid AMI id, starting with \"ami-\"."
+  # }
+  default = {
+    name = "default"
+  }
+}
+
+variable "extra_tags" {
+  description = "Extra tags to add to the cluster cloud resources"
+  type        = map(string)
+  default     = {}
+}
+
+variable "talos_api_allowed_cidr" {
+  description = "The CIDR from which to allow to access the Talos API"
+  type        = string
+  default     = "0.0.0.0/0"
+}
+
+variable "kubernetes_api_allowed_cidr" {
+  description = "The CIDR from which to allow to access the Kubernetes API"
+  type        = string
+  default     = "0.0.0.0/0"
+}
+
+variable "config_patch_files" {
+  description = "Path to talos config path files that applies to all nodes"
+  type        = list(string)
+  default     = []
+}
