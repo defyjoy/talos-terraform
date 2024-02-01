@@ -14,8 +14,7 @@ locals {
       externalCloudProvider = {
         enabled = true
         manifests = [
-          "https://raw.githubusercontent.com/siderolabs/contrib/main/examples/terraform/aws/manifests/ccm.yaml",
-          # "https://raw.githubusercontent.com/siderolabs/cluster-api-templates/main/aws/manifests/ccm.yaml"
+          "https://raw.githubusercontent.com/siderolabs/contrib/main/examples/terraform/aws/manifests/ccm.yaml"
         ]
       }
     }

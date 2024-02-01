@@ -1,10 +1,11 @@
 module "sg_loadbalancer" {
   source = "terraform-aws-modules/security-group/aws"
 
-  name                = "user-service"
-  description         = "Security group for user-service with custom ports open within VPC, and PostgreSQL publicly open"
-  vpc_id              = data.aws_vpc.vpc.id
-  ingress_cidr_blocks = [data.aws_vpc.vpc.cidr_block]
+  name        = "talos-security-group"
+  description = "Security group for user-service with custom ports open within VPC, and PostgreSQL publicly open"
+  vpc_id      = data.aws_vpc.vpc.id
+  # ingress_cidr_blocks = [data.aws_vpc.vpc.cidr_block]
+  ingress_cidr_blocks = ["0.0.0.0/0"]
   ingress_rules       = ["https-443-tcp"]
   ingress_with_cidr_blocks = [
     {
@@ -22,8 +23,16 @@ module "sg_loadbalancer" {
       cidr_blocks = "0.0.0.0/0"
     },
   ]
-  egress_cidr_blocks = ["0.0.0.0/0"]
 
+  egress_with_cidr_blocks = [
+    {
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      description = "egress traffic"
+      cidr_blocks = "0.0.0.0/0"
+    }
+  ]
 }
 
 resource "aws_lb_target_group" "talos_tg" {
@@ -33,6 +42,16 @@ resource "aws_lb_target_group" "talos_tg" {
   target_type     = "ip"
   ip_address_type = "ipv4"
   vpc_id          = data.aws_vpc.vpc.id
+
+  health_check {
+    port                = 6443
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    timeout             = 2
+    interval            = 5
+    protocol            = "TCP"
+    # matcher             = "200" # has to be HTTP 200 or fails
+  }
 }
 
 resource "aws_lb" "talos" {
@@ -42,7 +61,8 @@ resource "aws_lb" "talos" {
   security_groups    = [module.sg_loadbalancer.security_group_id]
   subnets            = [for subnet in data.aws_subnets.private_subnets.ids : subnet]
 
-  enable_deletion_protection = false
+  enable_deletion_protection       = false
+  enable_cross_zone_load_balancing = true
 
 
   tags = {

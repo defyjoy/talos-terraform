@@ -4,12 +4,10 @@ variable "cluster_name" {
   default     = "talos-sandbox"
 }
 
-
-
 variable "ccm" {
   description = "Whether to deploy aws cloud controller manager"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "kubernetes_version" {

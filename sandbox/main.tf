@@ -43,14 +43,17 @@ module "cluster_sg" {
       to_port     = 6443
       protocol    = "tcp"
       description = "allow 6443 for talos"
-      cidr_blocks = data.aws_vpc.vpc.cidr_block
+      # cidr_blocks = data.aws_vpc.vpc.cidr_block
+      cidr_blocks = "0.0.0.0/0"
     },
     {
       from_port   = 443
       to_port     = 443
       protocol    = "tcp"
       description = "allow 443 for talos"
-      cidr_blocks = data.aws_vpc.vpc.cidr_block
+      # cidr_blocks = data.aws_vpc.vpc.cidr_block
+      cidr_blocks = "0.0.0.0/0"
+
     }
   ]
 
@@ -195,6 +198,7 @@ module "talos_control_plane_nodes" {
   name                        = "${var.cluster_name}-control-plane-${count.index}"
   ami                         = var.control_plane.ami_id == null ? data.aws_ami.talos.id : var.control_plane.ami_id
   monitoring                  = true
+  associate_public_ip_address = false
   instance_type               = var.control_plane.instance_type
   subnet_id                   = data.aws_subnets.private_subnets.ids[count.index]
   iam_role_use_name_prefix    = false
@@ -217,13 +221,12 @@ module "talos_worker_group" {
   source  = "terraform-aws-modules/ec2-instance/aws"
   version = "~> 4.5"
 
-  # for_each = merge([for info in var.worker_groups : { for index in range(0, info.num_instances) : "${info.name}.${index}" => info }]...)
   count = var.worker_groups.num_instances
 
-  # name                        = "${var.cluster_name}-worker-group-${each.value.name}-${trimprefix(each.key, "${each.value.name}.")}"
   name                        = "${var.cluster_name}-worker-group-${count.index}"
   ami                         = data.aws_ami.talos.id
   monitoring                  = true
+  associate_public_ip_address = false
   instance_type               = var.worker_groups.instance_type
   subnet_id                   = data.aws_subnets.private_subnets.ids[count.index]
   iam_role_use_name_prefix    = false
@@ -246,7 +249,7 @@ resource "talos_machine_secrets" "this" {}
 
 data "talos_machine_configuration" "controlplane" {
   cluster_name       = var.cluster_name
-  cluster_endpoint   = "https://${aws_lb.talos.dns_name}"
+  cluster_endpoint   = "https://${aws_lb.talos.dns_name}:443"
   machine_type       = "controlplane"
   machine_secrets    = talos_machine_secrets.this.machine_secrets
   kubernetes_version = var.kubernetes_version
@@ -265,7 +268,7 @@ data "talos_machine_configuration" "worker_group" {
   count = var.worker_groups.num_instances
 
   cluster_name       = var.cluster_name
-  cluster_endpoint   = "https://${aws_lb.talos.dns_name}"
+  cluster_endpoint   = "https://${aws_lb.talos.dns_name}:443"
   machine_type       = "worker"
   machine_secrets    = talos_machine_secrets.this.machine_secrets
   kubernetes_version = var.kubernetes_version
